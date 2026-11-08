@@ -111,6 +111,11 @@ export default class EmulationContext implements EmulationContextInterface {
         return this._board.getVideoOutput();
     }
 
+    // Bus access for drivers that read machine state alongside their output (frame-tagged RAM).
+    getBus(): { peek(address: number): number } {
+        return this._board.getBus();
+    }
+
     getAsyncIO(): AsyncIOInterface {
         return this._asyncIO;
     }

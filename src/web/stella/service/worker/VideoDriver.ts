@@ -48,8 +48,9 @@ class VideoDriver {
             .registerRpcHandler(RPC_TYPE.getVideoParameters, this._onGetVideoParameters.bind(this));
     }
 
-    bind(video: VideoOutputInterface): void {
-        this._mutex.runExclusive(() => this._bind(video));
+    // `bus`, if given, is read when each frame completes; the frame message then carries a RAM snapshot.
+    bind(video: VideoOutputInterface, bus: RamSource = null): void {
+        this._mutex.runExclusive(() => this._bind(video, bus));
     }
 
     unbind(): void {
@@ -68,7 +69,14 @@ class VideoDriver {
         }
 
         const buffer = surface.getUnderlyingBuffer(),
-            id = self._ids.get(self._managedSurfaces.get(surface));
+            id = self._ids.get(self._managedSurfaces.get(surface)),
+            ram = self._bus ? new Uint8Array(RAM_SIZE) : undefined;
+
+        if (ram) {
+            for (let i = 0; i < RAM_SIZE; i++) {
+                ram[i] = self._bus.peek(RAM_BASE + i);
+            }
+        }
 
         self._rpc.signal<VideoNewFrameMessage>(
             SIGNAL_TYPE.videoNewFrame,
@@ -76,16 +84,19 @@ class VideoDriver {
                 id,
                 width: self._width,
                 height: self._height,
-                buffer
+                buffer,
+                ram
             },
-            [buffer]
+            ram ? [buffer, ram.buffer] : [buffer]
         );
     }
 
-    private async _bind(video: VideoOutputInterface): Promise<void> {
+    private async _bind(video: VideoOutputInterface, bus: RamSource): Promise<void> {
         if (this._active) {
             return;
         }
+
+        this._bus = bus;
 
         this._width = video.getWidth();
         this._height = video.getHeight();
@@ -138,6 +149,7 @@ class VideoDriver {
         this._video.newFrame.removeHandler(VideoDriver._onNewFrame, this);
 
         this._video = null;
+        this._bus = null;
         this._surfacePool = null;
         this._managedSurfacesById = null;
         this._ids = null;
@@ -170,6 +182,7 @@ class VideoDriver {
     private _active = false;
 
     private _video: VideoOutputInterface = null;
+    private _bus: RamSource = null;
 
     private _mutex = new Mutex();
 
@@ -181,6 +194,14 @@ class VideoDriver {
     private _height = 0;
 
     private _nextId = 0;
+}
+
+// RIOT RAM, as seen on the bus.
+const RAM_BASE = 0x80;
+const RAM_SIZE = 128;
+
+interface RamSource {
+    peek(address: number): number;
 }
 
 export { VideoDriver as default };

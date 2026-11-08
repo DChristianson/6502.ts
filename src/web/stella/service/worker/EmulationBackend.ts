@@ -75,7 +75,7 @@ class EmulationBackend {
 
         driverManager
             .addDriver(videoDriver, (context: EmulationContext, driver: VideoDriver) =>
-                driver.bind(context.getRawVideo())
+                driver.bind(context.getRawVideo(), context.getBus())
             )
             .addDriver(controlDriver, (context: EmulationContext, driver: ControlDriver) => driver.bind(context))
             .addDriver(pcmAudioDriver, (context: EmulationContext, driver: PCMAudioDriver) =>

@@ -110,10 +110,19 @@ class VideoProxy implements VideoEndpointInterface {
         frame.adopt(imageData);
         this._frameMap.set(imageData, message.id);
 
+        this._frameRam = message.ram || null;
         this.newFrame.dispatch(frame);
     }
 
+    // RAM ($80-$FF) snapshot taken when the frame being dispatched by newFrame was completed, or null if
+    // the worker doesn't send one. Read it synchronously inside a newFrame handler.
+    getFrameRam(): Uint8Array | null {
+        return this._frameRam;
+    }
+
     newFrame = new Event<PoolMemberInterface<ImageData>>();
+
+    private _frameRam: Uint8Array | null = null;
 
     private _framePool = new Pool<ImageData>(() => null);
     private _frameMap: WeakMap<ImageData, number> = null;

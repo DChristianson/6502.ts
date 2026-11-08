@@ -87,6 +87,8 @@ export interface VideoNewFrameMessage {
     width: number;
     height: number;
     buffer: ArrayBuffer;
+    // Snapshot of the 128 bytes of RIOT RAM ($80-$FF), taken when the frame was completed.
+    ram?: Uint8Array;
 }
 
 export interface VideoReturnSurfaceMessage {
